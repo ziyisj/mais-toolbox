@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
+import { fetchProduct } from "./sourceFetchers";
+import { resolveShortLink } from "./linkResolver";
 
 const isDev = !app.isPackaged;
 
@@ -42,8 +44,27 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-// IPC: ping (smoke test the renderer<->main bridge)
+// ---- IPC ----
 ipcMain.handle("app:ping", () => "pong");
-
-// IPC: open external URL (used by renderer when user clicks a商品 URL)
 ipcMain.handle("app:openExternal", (_e, url: string) => shell.openExternal(url));
+
+ipcMain.handle("fetcher:resolveLink", async (_e, raw: string) => {
+  try {
+    return { ok: true, url: await resolveShortLink(raw) };
+  } catch (e: any) {
+    return { ok: false, error: e.message || String(e) };
+  }
+});
+
+ipcMain.handle("fetcher:fetchProduct", async (_e, raw: string) => {
+  try {
+    const product = await fetchProduct(raw);
+    return { ok: true, product };
+  } catch (e: any) {
+    return {
+      ok: false,
+      error: e.message || String(e),
+      code: (e as any).code || "FETCH_ERROR"
+    };
+  }
+});

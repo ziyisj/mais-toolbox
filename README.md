@@ -132,3 +132,41 @@ mais-toolbox/
 ## 许可证
 
 MIT
+
+
+## CI / Releases
+
+This repo has a GitHub Actions workflow that:
+
+- Builds Win / macOS / Linux installers on every push to a `v*.*.*` tag
+- Publishes a **draft** GitHub Release with all artifacts attached
+
+To cut a release:
+
+```bash
+npm version patch    # or minor / major — updates package.json + creates a git tag
+git push --follow-tags
+```
+
+Then go to the Releases page, review the draft, and click Publish.
+
+You can also trigger a build manually from the Actions tab (workflow_dispatch) —
+artifacts will appear on the run page but no release is created.
+
+## Implemented platform adapters
+
+| Platform | Source (抓取) | Target (发布) |
+|---|---|---|
+| **1688** | ✅ Real (parses detail page HTML + `__NEXT_DATA__`) | 🚧 Stub |
+| 淘宝/天猫 | 🚧 Stub — needs login cookie / 商户 App Key | 🚧 Stub |
+| 拼多多 | 🚧 Stub — needs 多多客 access_token | 🚧 Stub |
+| 抖音小店 | 🚧 Stub — needs 抖店 OAuth | 🚧 Stub |
+| 京东 | 🚧 Stub — needs POP / 联盟接口 | 🚧 Stub |
+
+Real fetcher lives in `electron/` (main process) — see `fetcher.ts`,
+`linkResolver.ts`, `sourceFetchers.ts`. The renderer calls it via the
+IPC bridge declared in `electron/preload.ts`.
+
+Short links like `https://m.tb.cn/h.XYZ` and `https://v.douyin.com/ABC/`
+are automatically resolved to their real URLs before parsing — paste
+share text from the apps directly.

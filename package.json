@@ -18,7 +18,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^4.5.5",
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "cheerio": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",
@@ -39,9 +40,13 @@
     "appId": "com.ziyisj.mais-toolbox",
     "productName": "MaisToolbox",
     "files": ["dist/**/*", "dist-electron/**/*"],
-    "directories": { "buildResources": "public" },
-    "linux": { "target": ["AppImage"] },
-    "mac": { "target": ["dmg"] },
-    "win": { "target": ["nsis"] }
+    "directories": {
+      "buildResources": "public",
+      "output": "release"
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "linux": { "target": ["AppImage"], "category": "Office" },
+    "mac": { "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }] },
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] }
   }
 }
