@@ -1,6 +1,6 @@
 {
   "name": "mais-toolbox",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "迈斯工具箱 — 跨电商平台商品搬家桌面工具(骨架)",
   "main": "dist-electron/main.js",
   "author": "ziyisj",

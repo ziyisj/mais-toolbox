@@ -67,6 +67,29 @@ async function fetch1688(url: string, u: URL): Promise<FetchedProduct> {
     throw new Error(`1688 返回 HTTP ${res.status},可能被风控,可尝试在浏览器手动打开后导出 cookie。`);
   }
 
+  // ── 风控/失效页拦截(2026-05 1688 反爬升级后,匿名直抓基本都落到这些壳里) ──
+  // 1) 滑块验证页:`_tmd_/punish`、`action":"captcha"`、`rgv587_flag:sm`
+  if (/_____tmd_____|"action":\s*"captcha"|rgv587_flag/.test(res.body)) {
+    throw new Error(
+      "1688 触发滑块验证拦截(IP 已被风控)。无法匿名抓取,需要登录态 cookie 或浏览器抓取模式(v0.2 计划支持)。"
+    );
+  }
+  // 2) 商品已下架模板
+  if (/rax-ocms-wap-detail-404|"pageName":\s*"1688商品无法查看或已下架"/.test(res.body)) {
+    throw new Error("1688 商品已下架或无法查看。请确认链接有效。");
+  }
+  // 3) PC 站 windvane 重定向壳(< 8KB 且只有 a-link/windvane.js,没任何商品数据)
+  if (
+    res.body.length < 8000 &&
+    /<a id="a-link"><\/a>/.test(res.body) &&
+    /windvane\.js/.test(res.body) &&
+    !/__NEXT_DATA__|offerTitle|priceInfo/.test(res.body)
+  ) {
+    throw new Error(
+      "1688 PC 站要求登录后访问详情页(返回了重定向壳,无商品数据)。需要登录态 cookie 或浏览器抓取模式(v0.2 计划支持)。"
+    );
+  }
+
   const $ = cheerio.load(res.body);
 
   // Pull JSON from inline scripts — 1688 stuffs initial state into __NEXT_DATA__ or window.__GLOBAL_DATA
@@ -127,6 +150,15 @@ async function fetch1688(url: string, u: URL): Promise<FetchedProduct> {
 
   if (!title) {
     throw new Error("1688 页面解析失败 — 可能是登录墙或风控页。请在浏览器打开链接确认。");
+  }
+
+  // 防御性检查:即使有 title,如果是默认 <title>1688</title> / 无图 / 无价,也算失败,
+  // 别把空壳塞进本地商品库(v0.1.0 的 bug:导出 xlsx 全空就是因为这里没拦)
+  const titleIsTrivial = /^(1688|阿里巴巴|阿里巴巴1688|1688\.com)$/i.test(title.trim()) || title.trim().length < 4;
+  if (titleIsTrivial && images.length === 0 && price === 0) {
+    throw new Error(
+      "1688 页面无有效商品数据(title 是默认值且无图无价)。链接可能已被风控、登录墙拦截或商品已下架。"
+    );
   }
 
   // Dedupe images
